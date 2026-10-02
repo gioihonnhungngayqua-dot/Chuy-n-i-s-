@@ -1,0 +1,113 @@
+import ipywidgets as widgets
+from IPython.display import display, HTML
+
+# -------------------------------------------------------------
+# 1. THUẬT TOÁN CHUYỂN ĐỔI CƠ SỐ (HỖ TRỢ CẢ SỐ ÂM VÀ SỐ THỰC)
+# -------------------------------------------------------------
+def dec_to_bin(n, precision=8):
+    try:
+        num = float(n)
+    except ValueError:
+        return "Số không hợp lệ"
+    
+    is_neg = num < 0
+    num = abs(num)
+    int_part = int(num)
+    frac_part = num - int_part
+    
+    bin_int = bin(int_part)[2:]
+    if frac_part == 0:
+        res = bin_int
+    else:
+        bin_frac = []
+        while frac_part > 0 and len(bin_frac) < precision:
+            frac_part *= 2
+            bit = int(frac_part)
+            bin_frac.append(str(bit))
+            frac_part -= bit
+        res = f"{bin_int}.{''.join(bin_frac)}"
+        
+    return f"-{res}" if is_neg else res
+
+def bin_to_dec(b_str):
+    b_str = b_str.strip()
+    if not b_str:
+        return ""
+    
+    is_neg = b_str.startswith('-')
+    if is_neg:
+        b_str = b_str[1:]
+        
+    if '.' in b_str:
+        parts = b_str.split('.')
+        if len(parts) > 2:
+            return "Cú pháp sai"
+        int_part, frac_part = parts[0], parts[1]
+    else:
+        int_part, frac_part = b_str, ""
+        
+    if (int_part and not all(c in '01' for c in int_part)) or \
+       (frac_part and not all(c in '01' for c in frac_part)):
+        return "Chỉ nhập 0 và 1"
+        
+    dec_int = int(int_part, 2) if int_part else 0
+    dec_frac = 0.0
+    for i, bit in enumerate(frac_part):
+        if bit == '1':
+            dec_frac += 2 ** -(i + 1)
+            
+    res = dec_int + dec_frac
+    return str(-res if is_neg else res)
+
+# -------------------------------------------------------------
+# 2. TẠO GIAO DIỆN VỚI IPYWIDGETS (Ô NHẬP LIỆU REAL-TIME)
+# -------------------------------------------------------------
+# cờ kiểm soát tránh vòng lặp tự động cập nhật vô tận
+updating = False
+
+txt_dec = widgets.Text(
+    value='',
+    placeholder='Ví dụ: 25 hoặc 25.625',
+    description='Thập phân:',
+    style={'description_width': 'initial'},
+    layout=widgets.Layout(width='320px')
+)
+
+txt_bin = widgets.Text(
+    value='',
+    placeholder='Ví dụ: 11001 hoặc 11001.101',
+    description='Nhị phân:',
+    style={'description_width': 'initial'},
+    layout=widgets.Layout(width='320px')
+)
+
+def on_dec_change(change):
+    global updating
+    if updating:
+        return
+    updating = True
+    val = change['new'].strip()
+    if not val:
+        txt_bin.value = ''
+    else:
+        txt_bin.value = dec_to_bin(val)
+    updating = False
+
+def on_bin_change(change):
+    global updating
+    if updating:
+        return
+    updating = True
+    val = change['new'].strip()
+    if not val:
+        txt_dec.value = ''
+    else:
+        txt_dec.value = bin_to_dec(val)
+    updating = False
+
+txt_dec.observe(on_dec_change, names='value')
+txt_bin.observe(on_bin_change, names='value')
+
+# Hiển thị tiêu đề và các ô nhập
+display(HTML("
+        
